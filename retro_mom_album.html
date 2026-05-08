@@ -1,0 +1,628 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#1a1208;--surface:#251c0e;--surface2:#2f2210;
+  --gold:#c9a84c;--gold2:#e8c96a;--cream:#f5e6c8;
+  --muted:#8a7355;--border:#3d2f1a;
+  --kodak:sepia(0.6) saturate(1.4) brightness(1.05) contrast(1.1);
+  --bw:grayscale(1) contrast(1.15) brightness(0.95);
+  --lomo:saturate(1.8) contrast(1.3) brightness(0.88) hue-rotate(-10deg);
+  --fade:sepia(0.3) saturate(0.7) brightness(1.1) contrast(0.85);
+}
+body{font-family:'Georgia',serif;background:var(--bg);color:var(--cream);min-height:600px;}
+#app{display:flex;flex-direction:column;min-height:600px;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+
+/* ── lock ── */
+#lock{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:600px;background:radial-gradient(ellipse at center,#2a1f0a 0%,#0d0a05 100%);padding:2rem;text-align:center;}
+.film-strip{display:flex;gap:6px;margin-bottom:1.5rem;}
+.film-hole{width:18px;height:26px;background:#0d0a05;border-radius:3px;border:1px solid #3d2f1a;}
+#lock h2{font-size:1.8rem;color:var(--gold2);letter-spacing:3px;text-transform:uppercase;margin-bottom:0.3rem;}
+#lock p{color:var(--muted);margin-bottom:1.5rem;font-size:0.9rem;letter-spacing:1px;}
+#pw-in{padding:0.7rem 1.5rem;border:1px solid var(--gold);border-radius:4px;font-size:1rem;text-align:center;outline:none;width:240px;background:rgba(201,168,76,0.08);color:var(--gold2);letter-spacing:4px;}
+#pw-in:focus{border-color:var(--gold2);box-shadow:0 0 12px rgba(201,168,76,0.2);}
+#enter-btn{margin-top:1rem;padding:0.7rem 2.5rem;background:transparent;color:var(--gold);border:1px solid var(--gold);font-size:0.95rem;cursor:pointer;letter-spacing:2px;text-transform:uppercase;transition:all .3s;}
+#enter-btn:hover{background:rgba(201,168,76,0.12);color:var(--gold2);}
+#pw-err{color:#e07070;margin-top:0.5rem;font-size:0.85rem;display:none;}
+#hint{margin-top:1.2rem;color:var(--muted);font-size:0.78rem;letter-spacing:1px;}
+#hint code{color:var(--gold);background:rgba(201,168,76,0.1);padding:1px 6px;border-radius:3px;}
+
+/* ── header ── */
+header{background:var(--surface);padding:1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-holes{display:flex;flex-direction:column;gap:3px;}
+.logo-hole{width:8px;height:10px;background:var(--bg);border-radius:2px;}
+.logo-text h1{font-size:1.1rem;color:var(--gold2);letter-spacing:3px;text-transform:uppercase;}
+.logo-text p{font-size:0.7rem;color:var(--muted);letter-spacing:2px;}
+nav{display:flex;gap:0.4rem;flex-wrap:wrap;}
+nav button{padding:0.4rem 0.9rem;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.78rem;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all .2s;}
+nav button.act{border-color:var(--gold);color:var(--gold);}
+nav button:hover{color:var(--gold2);}
+
+/* ── bgm bar ── */
+#bgm-bar{background:#1f1609;border-bottom:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;}
+#bgm-bar span{font-size:0.72rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.bgm-btn{padding:0.3rem 0.8rem;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.72rem;cursor:pointer;border-radius:3px;letter-spacing:1px;transition:all .2s;}
+.bgm-btn.playing{border-color:var(--gold);color:var(--gold);}
+.bgm-btn:hover{color:var(--gold2);}
+#vol-sl{-webkit-appearance:none;height:3px;background:var(--border);border-radius:2px;width:80px;outline:none;cursor:pointer;}
+#vol-sl::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--gold);}
+
+/* ── pages ── */
+.pg{display:none;padding:1.25rem;overflow-y:auto;max-height:420px;}
+.pg.on{display:block;}
+
+/* ── album grid ── */
+.mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:3px;overflow:hidden;cursor:pointer;transition:transform .2s;}
+.mc:hover{transform:scale(1.02);}
+.mc-photo-wrap{position:relative;overflow:hidden;}
+.mc-photo-wrap img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;}
+.mc-photo-wrap::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.5) 100%);pointer-events:none;}
+.film-edge{display:flex;gap:4px;padding:3px 6px;background:#111;justify-content:space-between;}
+.fh{width:10px;height:14px;background:#222;border-radius:2px;border:1px solid #333;}
+.mc-info{padding:0.6rem 0.7rem;}
+.mc-dt{font-size:0.7rem;color:var(--muted);letter-spacing:1px;}
+.mc-ttl{font-size:0.9rem;color:var(--gold2);margin:0.2rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mc-desc{font-size:0.75rem;color:var(--muted);line-height:1.4;max-height:2.8em;overflow:hidden;}
+.mc-footer{display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0.7rem;border-top:1px solid var(--border);}
+.filter-badge{font-size:0.65rem;color:var(--gold);letter-spacing:1px;text-transform:uppercase;}
+.del-btn{background:transparent;border:none;color:#6a4444;font-size:0.75rem;cursor:pointer;}
+.del-btn:hover{color:#e07070;}
+
+.empty{text-align:center;padding:3rem 1rem;color:var(--muted);}
+.empty .ico{font-size:3rem;margin-bottom:0.5rem;opacity:0.5;}
+
+/* ── upload ── */
+.ucard{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.25rem;}
+.ucard h3{color:var(--gold2);margin-bottom:1rem;letter-spacing:2px;font-size:0.95rem;text-transform:uppercase;}
+.dz{border:1px dashed var(--border);border-radius:4px;padding:1.5rem;text-align:center;cursor:pointer;background:rgba(201,168,76,0.03);transition:all .2s;margin-bottom:1rem;}
+.dz:hover{border-color:var(--gold);background:rgba(201,168,76,0.06);}
+.dz p{color:var(--muted);font-size:0.85rem;margin-top:0.3rem;}
+.pre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:0.5rem;margin-bottom:1rem;}
+.pi{position:relative;}
+.pi img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:3px;border:1px solid var(--border);}
+.rb{position:absolute;top:-4px;right:-4px;background:#5a2222;color:#e07070;border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;font-size:0.6rem;display:flex;align-items:center;justify-content:center;}
+
+.fg{margin-bottom:0.9rem;}
+.fg label{display:block;color:var(--muted);font-size:0.78rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:0.3rem;}
+.fg input,.fg textarea,.fg select{width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border);border-radius:3px;font-size:0.88rem;font-family:inherit;outline:none;background:rgba(201,168,76,0.04);color:var(--cream);}
+.fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--gold);}
+.fg textarea{min-height:65px;resize:vertical;}
+.fg select option{background:var(--surface);color:var(--cream);}
+
+.filter-preview{display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;}
+.fp{text-align:center;cursor:pointer;opacity:0.6;transition:all .2s;}
+.fp.sel{opacity:1;}
+.fp img{width:55px;height:40px;object-fit:cover;border-radius:3px;border:1px solid var(--border);}
+.fp.sel img{border-color:var(--gold);}
+.fp span{display:block;font-size:0.65rem;color:var(--muted);margin-top:2px;letter-spacing:1px;}
+.fp.sel span{color:var(--gold);}
+
+.sv-btn{padding:0.7rem 2rem;background:transparent;color:var(--gold);border:1px solid var(--gold);font-size:0.85rem;cursor:pointer;letter-spacing:2px;text-transform:uppercase;border-radius:3px;transition:all .3s;}
+.sv-btn:hover{background:rgba(201,168,76,0.1);}
+
+/* ── slideshow ── */
+#ss-overlay{display:none;position:fixed;inset:0;background:#000;z-index:9999;flex-direction:column;align-items:center;justify-content:center;}
+#ss-overlay.on{display:flex;}
+#ss-img-wrap{position:relative;max-width:90vw;max-height:70vh;}
+#ss-img{max-width:90vw;max-height:65vh;border:8px solid #f5e6c8;box-shadow:0 0 60px rgba(0,0,0,0.8);}
+#ss-vign{position:absolute;inset:8px;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.45) 100%);pointer-events:none;}
+#ss-grain{position:absolute;inset:8px;opacity:0.08;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");pointer-events:none;}
+#ss-film-t,.ss-film-b{display:flex;gap:8px;padding:5px 10px;background:#111;width:100%;max-width:90vw;justify-content:space-around;}
+.ss-fh{width:16px;height:20px;background:#222;border-radius:3px;}
+#ss-info{margin-top:1rem;text-align:center;}
+#ss-title{font-size:1.2rem;color:var(--gold2);letter-spacing:3px;}
+#ss-date{font-size:0.8rem;color:var(--muted);letter-spacing:2px;margin-top:0.3rem;}
+#ss-desc{font-size:0.88rem;color:var(--cream);margin-top:0.5rem;max-width:500px;opacity:0.8;line-height:1.6;}
+#ss-ctrl{display:flex;gap:1rem;margin-top:1.2rem;align-items:center;}
+.ss-btn{padding:0.5rem 1.2rem;border:1px solid var(--muted);background:transparent;color:var(--muted);cursor:pointer;font-size:0.8rem;letter-spacing:1px;border-radius:3px;transition:all .2s;}
+.ss-btn:hover{border-color:var(--gold);color:var(--gold);}
+#ss-counter{font-size:0.78rem;color:var(--muted);letter-spacing:2px;}
+#ss-close{position:absolute;top:1rem;right:1.5rem;color:var(--muted);font-size:1.5rem;cursor:pointer;background:none;border:none;}
+#ss-close:hover{color:var(--gold);}
+#ss-prog{width:200px;height:2px;background:var(--border);border-radius:1px;overflow:hidden;}
+#ss-prog-inner{height:100%;background:var(--gold);width:0%;transition:width linear;}
+
+/* ── scroll reel ── */
+#reel-overlay{display:none;position:fixed;inset:0;background:#0a0702;z-index:9999;flex-direction:column;overflow:hidden;}
+#reel-overlay.on{display:flex;}
+#reel-strip{display:flex;align-items:center;gap:0;height:100%;transition:transform 0.8s cubic-bezier(0.4,0,0.2,1);}
+.reel-frame{min-width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
+.reel-film-t,.reel-film-b{display:flex;gap:12px;padding:6px 20px;background:#111;width:100%;justify-content:space-around;flex-shrink:0;}
+.reel-fh{width:20px;height:26px;background:#1a1a1a;border-radius:3px;border:1px solid #333;}
+.reel-img-area{flex:1;display:flex;align-items:center;justify-content:center;padding:1rem;position:relative;}
+.reel-img{max-width:80vw;max-height:55vh;border:6px solid #eee;display:block;}
+.reel-vign{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.6) 100%);pointer-events:none;}
+.reel-caption{padding:1rem 2rem;text-align:center;background:rgba(0,0,0,0.5);width:100%;}
+.reel-caption h3{color:var(--gold2);font-size:1rem;letter-spacing:3px;}
+.reel-caption p{color:var(--muted);font-size:0.8rem;margin-top:0.3rem;}
+#reel-close{position:absolute;top:1rem;right:1.5rem;color:var(--muted);font-size:1.5rem;cursor:pointer;background:none;border:z-index:9999;border:none;z-index:10000;}
+#reel-nav{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);display:flex;gap:1rem;}
+.reel-nav-btn{padding:0.4rem 1rem;border:1px solid var(--muted);background:transparent;color:var(--muted);cursor:pointer;font-size:0.75rem;border-radius:3px;}
+.reel-nav-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* ── card theater ── */
+#card-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;}
+#card-overlay.on{display:flex;}
+#card-stage{width:min(480px,92vw);perspective:1200px;}
+.theater-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.5rem;position:relative;overflow:hidden;animation:cardIn 0.5s ease;}
+@keyframes cardIn{from{opacity:0;transform:rotateY(-15deg) scale(0.95)}to{opacity:1;transform:rotateY(0) scale(1)}}
+.tc-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:3px;border:1px solid var(--border);display:block;}
+.tc-divider{display:flex;align-items:center;gap:0.5rem;margin:0.8rem 0;}
+.tc-line{flex:1;height:1px;background:var(--border);}
+.tc-diamond{color:var(--gold);font-size:0.6rem;}
+.tc-date{font-size:0.72rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:0.4rem;}
+.tc-title{font-size:1.1rem;color:var(--gold2);text-align:center;letter-spacing:2px;}
+.tc-desc{font-size:0.83rem;color:var(--cream);line-height:1.6;margin-top:0.5rem;text-align:center;opacity:0.85;}
+.tc-filter{font-size:0.65rem;color:var(--muted);text-align:right;letter-spacing:1px;text-transform:uppercase;margin-top:0.5rem;}
+#card-ctrl{display:flex;gap:0.75rem;justify-content:center;margin-top:1rem;}
+#card-close{position:absolute;top:0.75rem;right:1rem;color:var(--muted);font-size:1.3rem;cursor:pointer;background:none;border:none;}
+
+/* ── cfg/about ── */
+.cfg-card,.about-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.25rem;}
+.cfg-card h3,.about-card h3{color:var(--gold2);margin-bottom:1rem;letter-spacing:2px;font-size:0.95rem;text-transform:uppercase;}
+.cfg-hr{border:none;border-top:1px solid var(--border);margin:1rem 0;}
+.cfg-note{color:var(--muted);font-size:0.78rem;line-height:1.7;}
+.about-card{text-align:center;}
+.about-film{display:flex;justify-content:center;gap:6px;margin-bottom:1rem;}
+.about-fh{width:14px;height:20px;background:var(--bg);border-radius:3px;border:1px solid var(--border);}
+.about-card p{color:var(--muted);line-height:1.9;font-size:0.9rem;}
+
+/* ── toast ── */
+#toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--gold);border:1px solid var(--gold);padding:0.5rem 1.5rem;border-radius:3px;font-size:0.82rem;letter-spacing:1px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99999;}
+#toast.on{opacity:1;}
+
+/* ── play buttons ── */
+.play-bar{display:flex;gap:0.5rem;padding:0.75rem;background:var(--surface2);border-top:1px solid var(--border);flex-wrap:wrap;}
+.play-bar span{font-size:0.72rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;margin-right:0.25rem;}
+.play-btn{padding:0.4rem 0.9rem;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.72rem;cursor:pointer;letter-spacing:1px;text-transform:uppercase;border-radius:3px;transition:all .2s;}
+.play-btn:hover{border-color:var(--gold);color:var(--gold);}
+</style>
+
+<div id="app">
+  <div id="lock">
+    <div class="film-strip">
+      <div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div>
+      <div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div>
+    </div>
+    <h2>Memory Album</h2>
+    <p>媽媽的私密回憶底片</p>
+    <input type="password" id="pw-in" placeholder="———" maxlength="20"/>
+    <button id="enter-btn">▶ PLAY</button>
+    <div id="pw-err">✗ 密碼錯誤</div>
+    <div id="hint">預設密碼：<code>ilovemom</code></div>
+  </div>
+
+  <div id="main" style="display:none;flex-direction:column;">
+    <header>
+      <div class="logo">
+        <div class="logo-holes"><div class="logo-hole"></div><div class="logo-hole"></div><div class="logo-hole"></div></div>
+        <div class="logo-text"><h1 id="hdr-t">Memory Film</h1><p id="hdr-s">媽媽的回憶相簿</p></div>
+        <div class="logo-holes"><div class="logo-hole"></div><div class="logo-hole"></div><div class="logo-hole"></div></div>
+      </div>
+      <nav>
+        <button data-p="album" class="act">■ 相簿</button>
+        <button data-p="upload">+ 新增</button>
+        <button data-p="about">♡ 關於</button>
+        <button data-p="cfg">⚙ 設定</button>
+      </nav>
+    </header>
+
+    <div id="bgm-bar">
+      <span>♪ BGM</span>
+      <button class="bgm-btn" data-track="0">夏日黃昏</button>
+      <button class="bgm-btn" data-track="1">老照片</button>
+      <button class="bgm-btn" data-track="2">底片時代</button>
+      <button class="bgm-btn" id="bgm-stop">■ 停止</button>
+      <span>vol</span>
+      <input type="range" id="vol-sl" min="0" max="1" step="0.05" value="0.4"/>
+    </div>
+
+    <div id="album" class="pg on">
+      <div id="mem-c"></div>
+    </div>
+
+    <div id="upload" class="pg">
+      <div class="ucard">
+        <h3>+ 新增回憶底片</h3>
+        <div class="dz" id="dz">
+          <div style="font-size:2rem;color:var(--gold);opacity:0.5;">◎</div>
+          <p>點擊選擇照片（可多選）</p>
+        </div>
+        <input type="file" id="fi" accept="image/*" multiple style="display:none"/>
+        <div class="pre-grid" id="pg-pre"></div>
+        <div class="fg"><label>濾鏡 / Filter</label>
+          <select id="u-filter">
+            <option value="none">NONE — 原始</option>
+            <option value="kodak">KODAK — 暖黃底片</option>
+            <option value="bw">B&W — 黑白經典</option>
+            <option value="lomo">LOMO — 飽和鮮豔</option>
+            <option value="fade">FADE — 褪色復古</option>
+          </select>
+        </div>
+        <div class="fg"><label>日期</label><input type="date" id="ud"/></div>
+        <div class="fg"><label>標題</label><input type="text" id="ut" placeholder="這份回憶的名字"/></div>
+        <div class="fg"><label>回憶故事</label><textarea id="uc" placeholder="寫下當時的感受…"></textarea></div>
+        <button class="sv-btn" id="sv">◎ 沖洗這份回憶</button>
+      </div>
+    </div>
+
+    <div id="about" class="pg">
+      <div class="about-card">
+        <div class="about-film"><div class="about-fh"></div><div class="about-fh"></div><div class="about-fh"></div><div class="about-fh"></div><div class="about-fh"></div><div class="about-fh"></div></div>
+        <h3>給最愛的媽媽</h3>
+        <p>每一張照片都是一格底片，<br>每一格底片都是一份珍貴的回憶。<br>這個相簿收藏著我們之間<br>最溫柔的時光。<br><br>謝謝妳，媽媽。♡</p>
+        <div style="margin-top:1rem;font-size:0.7rem;color:var(--muted);letter-spacing:2px;">— DEVELOPED WITH LOVE —</div>
+      </div>
+    </div>
+
+    <div id="cfg" class="pg">
+      <div class="cfg-card">
+        <h3>⚙ 設定</h3>
+        <div class="fg"><label>新密碼</label><input type="password" id="np" placeholder="新密碼"/></div>
+        <div class="fg"><label>確認新密碼</label><input type="password" id="cp" placeholder="再輸入一次"/></div>
+        <button class="sv-btn" id="sp-btn">儲存密碼</button>
+        <div class="cfg-hr"></div>
+        <div class="fg"><label>相簿名稱</label><input type="text" id="at" placeholder="Memory Film"/></div>
+        <div class="fg"><label>副標題</label><input type="text" id="as" placeholder="媽媽的回憶相簿"/></div>
+        <button class="sv-btn" id="si-btn">儲存資訊</button>
+        <div class="cfg-hr"></div>
+        <p class="cfg-note">照片與文字儲存於瀏覽器本機 (localStorage)。請固定使用同一瀏覽器開啟。</p>
+      </div>
+    </div>
+
+    <div class="play-bar">
+      <span>播放 ▸</span>
+      <button class="play-btn" id="btn-ss">▶ 幻燈片</button>
+      <button class="play-btn" id="btn-reel">⬛ 膠捲捲動</button>
+      <button class="play-btn" id="btn-card">❒ 電影卡片</button>
+    </div>
+  </div>
+</div>
+
+<!-- Slideshow overlay -->
+<div id="ss-overlay">
+  <button id="ss-close">✕</button>
+  <div id="ss-film-t" class="ss-film-b"></div>
+  <div id="ss-img-wrap">
+    <img id="ss-img" src="" alt=""/>
+    <div id="ss-vign"></div>
+    <div id="ss-grain"></div>
+  </div>
+  <div class="ss-film-b" id="ss-film-b2"></div>
+  <div id="ss-info"><div id="ss-title"></div><div id="ss-date"></div><div id="ss-desc"></div></div>
+  <div id="ss-ctrl">
+    <button class="ss-btn" id="ss-prev">◀ PREV</button>
+    <div id="ss-prog"><div id="ss-prog-inner"></div></div>
+    <div id="ss-counter">1 / 1</div>
+    <button class="ss-btn" id="ss-next">NEXT ▶</button>
+    <button class="ss-btn" id="ss-auto">AUTO</button>
+  </div>
+</div>
+
+<!-- Reel overlay -->
+<div id="reel-overlay">
+  <button id="reel-close">✕</button>
+  <div id="reel-strip"></div>
+  <div id="reel-nav">
+    <button class="reel-nav-btn" id="reel-prev">◀ PREV</button>
+    <span id="reel-ctr" style="font-size:0.75rem;color:var(--muted);letter-spacing:2px;display:flex;align-items:center;">1/1</span>
+    <button class="reel-nav-btn" id="reel-next">NEXT ▶</button>
+  </div>
+</div>
+
+<!-- Card theater overlay -->
+<div id="card-overlay">
+  <div id="card-stage">
+    <div class="theater-card" id="tc-card">
+      <button id="card-close">✕</button>
+      <img id="tc-img" src="" alt="" class="tc-img"/>
+      <div class="tc-divider"><div class="tc-line"></div><div class="tc-diamond">◆</div><div class="tc-line"></div></div>
+      <div id="tc-date" class="tc-date"></div>
+      <div id="tc-title" class="tc-title"></div>
+      <div id="tc-desc" class="tc-desc"></div>
+      <div id="tc-filter" class="tc-filter"></div>
+    </div>
+    <div id="card-ctrl">
+      <button class="ss-btn" id="card-prev">◀ PREV</button>
+      <span id="card-ctr" style="font-size:0.75rem;color:var(--muted);letter-spacing:2px;">1/1</span>
+      <button class="ss-btn" id="card-next">NEXT ▶</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const DEF='ilovemom',PK='apw2',MK='amem2',TK='alt2',SK='als2';
+let imgs=[],curF='none';
+const filterMap={none:'none',kodak:'sepia(0.55) saturate(1.4) brightness(1.05) contrast(1.1)',bw:'grayscale(1) contrast(1.15) brightness(0.95)',lomo:'saturate(1.8) contrast(1.3) brightness(0.88) hue-rotate(-10deg)',fade:'sepia(0.3) saturate(0.7) brightness(1.1) contrast(0.85)'};
+const filterNames={none:'NONE',kodak:'KODAK',bw:'B&W',lomo:'LOMO',fade:'FADE'};
+function getPW(){return localStorage.getItem(PK)||DEF;}
+function getMems(){try{return JSON.parse(localStorage.getItem(MK))||[];}catch{return[];}}
+function today(){return new Date().toISOString().split('T')[0];}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── Audio engine ──
+const AC=window.AudioContext||window.webkitAudioContext;
+let actx=null,currentBgm=null,bgmGain=null,bgmIdx=-1;
+
+function getAC(){if(!actx){actx=new AC();bgmGain=actx.createGain();bgmGain.gain.value=0.4;bgmGain.connect(actx.destination);}return actx;}
+
+function makeMelody(notes,bpm,waveType){
+  const ctx=getAC();
+  if(currentBgm){currentBgm.forEach(n=>{ try{n.stop();}catch(e){} });currentBgm=null;}
+  const beat=60/bpm;
+  const nodes=[];
+  let t=ctx.currentTime+0.1;
+  const loop=()=>{
+    notes.forEach(([freq,dur,vol])=>{
+      if(freq===0){t+=dur*beat;return;}
+      const osc=ctx.createOscillator();
+      const g=ctx.createGain();
+      osc.type=waveType||'sine';
+      osc.frequency.value=freq;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(vol||0.25,t+0.05);
+      g.gain.linearRampToValueAtTime(vol||0.25,t+dur*beat-0.05);
+      g.gain.linearRampToValueAtTime(0,t+dur*beat);
+      osc.connect(g);g.connect(bgmGain);
+      osc.start(t);osc.stop(t+dur*beat);
+      nodes.push(osc);
+      t+=dur*beat;
+    });
+  };
+  loop();
+  const totalTime=(notes.reduce((a,n)=>a+n[1],0))*beat;
+  const iv=setInterval(()=>{
+    if(!currentBgm){clearInterval(iv);return;}
+    loop();
+  },totalTime*1000);
+  currentBgm=nodes;
+  currentBgm._iv=iv;
+  document.querySelectorAll('.bgm-btn[data-track]').forEach(b=>b.classList.remove('playing'));
+}
+
+function stopBgm(){
+  if(currentBgm){currentBgm.forEach(n=>{ try{n.stop();}catch(e){} });clearInterval(currentBgm._iv);currentBgm=null;}
+  document.querySelectorAll('.bgm-btn').forEach(b=>b.classList.remove('playing'));
+  bgmIdx=-1;
+}
+
+const TRACKS=[
+  {name:'夏日黃昏',fn:()=>{
+    const n=[[392,1],[440,1],[494,1],[523,2],[0,1],[494,1],[440,2],[392,1],[349,1],[392,3],[0,1],[330,1],[349,1],[392,1],[440,1],[494,1],[440,1],[392,2]];
+    makeMelody(n,88,'triangle');
+  }},
+  {name:'老照片',fn:()=>{
+    const n=[[261,2],[293,1],[329,1],[349,2],[329,1],[293,2],[261,4],[0,1],[220,2],[261,1],[293,1],[329,2],[293,1],[261,2],[220,4]];
+    makeMelody(n,72,'sine');
+  }},
+  {name:'底片時代',fn:()=>{
+    const n=[[392,1],[440,1],[392,1],[349,1],[330,2],[293,1],[329,2],[0,1],[369,1],[415,1],[369,1],[330,1],[311,2],[277,1],[311,2],[0,1],[330,1],[369,1],[415,1],[440,1],[415,1],[369,2],[330,4]];
+    makeMelody(n,80,'sine');
+  }}
+];
+
+document.querySelectorAll('.bgm-btn[data-track]').forEach(b=>{
+  b.onclick=()=>{
+    const i=parseInt(b.dataset.track);
+    if(bgmIdx===i){stopBgm();return;}
+    bgmIdx=i;
+    TRACKS[i].fn();
+    document.querySelectorAll('.bgm-btn[data-track]').forEach(x=>x.classList.remove('playing'));
+    b.classList.add('playing');
+  };
+});
+document.getElementById('bgm-stop').onclick=stopBgm;
+document.getElementById('vol-sl').oninput=e=>{
+  if(bgmGain)bgmGain.gain.value=parseFloat(e.target.value);
+};
+
+// ── Lock ──
+document.getElementById('enter-btn').onclick=unlock;
+document.getElementById('pw-in').addEventListener('keydown',e=>{if(e.key==='Enter')unlock();});
+function unlock(){
+  if(document.getElementById('pw-in').value===getPW()){
+    document.getElementById('lock').style.display='none';
+    const m=document.getElementById('main');m.style.display='flex';
+    loadInfo();renderMems();document.getElementById('ud').value=today();
+  } else {
+    document.getElementById('pw-err').style.display='block';
+    document.getElementById('pw-in').value='';
+  }
+}
+
+// ── Nav ──
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.pg').forEach(p=>{p.classList.remove('on');p.style.display='none';});
+    const t=document.getElementById(b.dataset.p);t.style.display='block';
+    setTimeout(()=>t.classList.add('on'),10);
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('act'));b.classList.add('act');
+    if(b.dataset.p==='album')renderMems();
+    if(b.dataset.p==='cfg'){document.getElementById('at').value=localStorage.getItem(TK)||'';document.getElementById('as').value=localStorage.getItem(SK)||'';}
+  };
+});
+
+// ── Upload ──
+const dz=document.getElementById('dz');
+dz.onclick=()=>document.getElementById('fi').click();
+document.getElementById('fi').onchange=e=>addFiles(e.target.files);
+function addFiles(files){
+  Array.from(files).forEach(f=>{
+    if(!f.type.startsWith('image/'))return;
+    const r=new FileReader();r.onload=e=>{imgs.push(e.target.result);renderPre();};r.readAsDataURL(f);
+  });
+}
+function renderPre(){
+  const fv=document.getElementById('u-filter').value;
+  document.getElementById('pg-pre').innerHTML=imgs.map((s,i)=>
+    '<div class="pi"><img src="'+s+'" style="filter:'+filterMap[fv]+'"><button class="rb" onclick="imgs.splice('+i+',1);renderPre()">✕</button></div>'
+  ).join('');
+}
+document.getElementById('u-filter').onchange=renderPre;
+
+document.getElementById('sv').onclick=()=>{
+  if(!imgs.length){toast('請先選擇照片！');return;}
+  const fv=document.getElementById('u-filter').value;
+  const m={id:Date.now(),title:document.getElementById('ut').value.trim()||'美好的一天',
+    desc:document.getElementById('uc').value.trim(),date:document.getElementById('ud').value||today(),
+    filter:fv,images:[...imgs]};
+  const ms=getMems();ms.unshift(m);localStorage.setItem(MK,JSON.stringify(ms));
+  imgs=[];document.getElementById('pg-pre').innerHTML='';
+  ['ut','uc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ud').value=today();document.getElementById('u-filter').value='none';
+  toast('底片沖洗完成 ◎');
+  document.querySelector('nav button[data-p="album"]').click();
+};
+
+// ── Album render ──
+function renderMems(){
+  const c=document.getElementById('mem-c'),ms=getMems();
+  if(!ms.length){
+    c.innerHTML='<div class="empty"><div class="ico">◎</div><p>還沒有任何底片<br>點擊「+ 新增」開始沖洗回憶</p></div>';return;
+  }
+  const holes=(n)=>Array(n).fill(0).map(()=>'<div class="fh"></div>').join('');
+  c.innerHTML='<div class="mem-grid">'+ms.map(m=>{
+    const filt=filterMap[m.filter||'none'];
+    const ph=m.images&&m.images.length
+      ?'<div class="film-edge">'+holes(5)+'</div><div class="mc-photo-wrap"><img src="'+m.images[0]+'" style="filter:'+filt+'"></div><div class="film-edge">'+holes(5)+'</div>'
+      :'<div style="height:80px;background:var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted)">◎</div>';
+    const ds=m.date?new Date(m.date+'T12:00:00').toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}):'';
+    return '<div class="mc" onclick="openCard('+m.id+')">'+ph
+      +'<div class="mc-info">'+(ds?'<div class="mc-dt">'+ds+'</div>':'')
+      +'<div class="mc-ttl">'+esc(m.title)+'</div>'+(m.desc?'<div class="mc-desc">'+esc(m.desc)+'</div>':'')+'</div>'
+      +'<div class="mc-footer"><span class="filter-badge">'+filterNames[m.filter||'none']+'</span>'
+      +'<button class="del-btn" onclick="event.stopPropagation();delMem('+m.id+')">✕ DEL</button></div></div>';
+  }).join('')+'</div>';
+}
+function delMem(id){
+  if(!confirm('確定刪除？'))return;
+  localStorage.setItem(MK,JSON.stringify(getMems().filter(m=>m.id!==id)));renderMems();toast('已刪除');
+}
+
+// ── Slideshow ──
+let ssIdx=0,ssAuto=false,ssTimer=null,ssProgTimer=null;
+function buildFilmBar(el){el.innerHTML=Array(12).fill(0).map(()=>'<div class="ss-fh"></div>').join('');}
+
+document.getElementById('btn-ss').onclick=()=>{
+  const ms=getMems();if(!ms.length){toast('還沒有回憶喔！');return;}
+  buildFilmBar(document.getElementById('ss-film-t'));
+  buildFilmBar(document.getElementById('ss-film-b2'));
+  ssIdx=0;showSlide(ssIdx);
+  document.getElementById('ss-overlay').classList.add('on');
+};
+document.getElementById('ss-close').onclick=()=>{
+  document.getElementById('ss-overlay').classList.remove('on');
+  clearInterval(ssTimer);clearInterval(ssProgTimer);ssAuto=false;
+  document.getElementById('ss-auto').textContent='AUTO';
+};
+document.getElementById('ss-prev').onclick=()=>{const ms=getMems();ssIdx=(ssIdx-1+ms.length)%ms.length;showSlide(ssIdx);};
+document.getElementById('ss-next').onclick=()=>{const ms=getMems();ssIdx=(ssIdx+1)%ms.length;showSlide(ssIdx);};
+document.getElementById('ss-auto').onclick=()=>{
+  ssAuto=!ssAuto;
+  document.getElementById('ss-auto').textContent=ssAuto?'■ STOP':'AUTO';
+  if(ssAuto)startAuto();else{clearInterval(ssTimer);clearInterval(ssProgTimer);document.getElementById('ss-prog-inner').style.width='0%';}
+};
+function showSlide(i){
+  const ms=getMems();if(!ms.length)return;
+  const m=ms[i];
+  const img=document.getElementById('ss-img');
+  img.style.opacity=0;img.style.transition='opacity 0.5s';
+  const filt=filterMap[m.filter||'none'];
+  img.src=m.images&&m.images.length?m.images[0]:'';
+  img.style.filter=filt;
+  setTimeout(()=>img.style.opacity=1,50);
+  const ds=m.date?new Date(m.date+'T12:00:00').toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}):'';
+  document.getElementById('ss-title').textContent=m.title;
+  document.getElementById('ss-date').textContent=ds;
+  document.getElementById('ss-desc').textContent=m.desc||'';
+  document.getElementById('ss-counter').textContent=(i+1)+' / '+ms.length;
+}
+function startAuto(){
+  clearInterval(ssTimer);clearInterval(ssProgTimer);
+  let prog=0;document.getElementById('ss-prog-inner').style.transition='none';document.getElementById('ss-prog-inner').style.width='0%';
+  ssProgTimer=setInterval(()=>{prog+=1;document.getElementById('ss-prog-inner').style.width=prog+'%';},30);
+  ssTimer=setInterval(()=>{
+    const ms=getMems();ssIdx=(ssIdx+1)%ms.length;showSlide(ssIdx);
+    prog=0;clearInterval(ssProgTimer);
+    ssProgTimer=setInterval(()=>{prog+=1;document.getElementById('ss-prog-inner').style.width=prog+'%';},30);
+  },3000);
+}
+
+// ── Reel ──
+let reelIdx=0;
+document.getElementById('btn-reel').onclick=()=>{
+  const ms=getMems();if(!ms.length){toast('還沒有回憶喔！');return;}
+  buildReel(ms);reelIdx=0;moveReel();
+  document.getElementById('reel-overlay').classList.add('on');
+};
+document.getElementById('reel-close').onclick=()=>document.getElementById('reel-overlay').classList.remove('on');
+document.getElementById('reel-prev').onclick=()=>{const ms=getMems();reelIdx=(reelIdx-1+ms.length)%ms.length;moveReel();};
+document.getElementById('reel-next').onclick=()=>{const ms=getMems();reelIdx=(reelIdx+1)%ms.length;moveReel();};
+function buildReel(ms){
+  const strip=document.getElementById('reel-strip');
+  strip.innerHTML=ms.map(m=>{
+    const filt=filterMap[m.filter||'none'];
+    const ds=m.date?new Date(m.date+'T12:00:00').toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}):'';
+    const holes=Array(10).fill(0).map(()=>'<div class="reel-fh"></div>').join('');
+    return '<div class="reel-frame">'
+      +'<div class="reel-film-t">'+holes+'</div>'
+      +'<div class="reel-img-area"><img class="reel-img" src="'+(m.images&&m.images.length?m.images[0]:'')+'" style="filter:'+filt+'"><div class="reel-vign"></div></div>'
+      +'<div class="reel-film-b">'+holes+'</div>'
+      +'<div class="reel-caption"><h3>'+esc(m.title)+'</h3>'+(ds?'<p>'+ds+'</p>':'')+(m.desc?'<p style="margin-top:0.3rem;font-size:0.78rem">'+esc(m.desc)+'</p>':'')+'</div>'
+      +'</div>';
+  }).join('');
+}
+function moveReel(){
+  const ms=getMems();
+  document.getElementById('reel-strip').style.transform='translateX(-'+(reelIdx*100)+'vw)';
+  document.getElementById('reel-ctr').textContent=(reelIdx+1)+'/'+ms.length;
+}
+
+// ── Card theater ──
+let cardIdx=0;
+function openCard(id){const ms=getMems();const i=ms.findIndex(m=>m.id===id);if(i<0)return;cardIdx=i;showCard();document.getElementById('card-overlay').classList.add('on');}
+document.getElementById('card-close').onclick=()=>document.getElementById('card-overlay').classList.remove('on');
+document.getElementById('card-overlay').onclick=e=>{if(e.target===document.getElementById('card-overlay'))document.getElementById('card-overlay').classList.remove('on');};
+document.getElementById('btn-card').onclick=()=>{const ms=getMems();if(!ms.length){toast('還沒有回憶喔！');return;}cardIdx=0;showCard();document.getElementById('card-overlay').classList.add('on');};
+document.getElementById('card-prev').onclick=()=>{const ms=getMems();cardIdx=(cardIdx-1+ms.length)%ms.length;showCard();};
+document.getElementById('card-next').onclick=()=>{const ms=getMems();cardIdx=(cardIdx+1)%ms.length;showCard();};
+function showCard(){
+  const ms=getMems();if(!ms.length)return;
+  const m=ms[cardIdx];
+  const filt=filterMap[m.filter||'none'];
+  document.getElementById('tc-img').src=m.images&&m.images.length?m.images[0]:'';
+  document.getElementById('tc-img').style.filter=filt;
+  const ds=m.date?new Date(m.date+'T12:00:00').toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}):'';
+  document.getElementById('tc-date').textContent=ds;
+  document.getElementById('tc-title').textContent=m.title;
+  document.getElementById('tc-desc').textContent=m.desc||'';
+  document.getElementById('tc-filter').textContent=filterNames[m.filter||'none'];
+  document.getElementById('card-ctr').textContent=(cardIdx+1)+'/'+ms.length;
+  const card=document.getElementById('tc-card');
+  card.style.animation='none';void card.offsetWidth;card.style.animation='cardIn 0.5s ease';
+}
+
+// ── Settings ──
+document.getElementById('sp-btn').onclick=()=>{
+  const n=document.getElementById('np').value,c=document.getElementById('cp').value;
+  if(!n){toast('請輸入新密碼');return;}if(n!==c){toast('兩次密碼不一致');return;}
+  localStorage.setItem(PK,n);document.getElementById('np').value='';document.getElementById('cp').value='';toast('密碼已更新');
+};
+document.getElementById('si-btn').onclick=()=>{
+  const t=document.getElementById('at').value.trim(),s=document.getElementById('as').value.trim();
+  if(t){localStorage.setItem(TK,t);document.getElementById('hdr-t').textContent=t;}
+  if(s){localStorage.setItem(SK,s);document.getElementById('hdr-s').textContent=s;}
+  toast('已更新');
+};
+function loadInfo(){
+  const t=localStorage.getItem(TK),s=localStorage.getItem(SK);
+  if(t)document.getElementById('hdr-t').textContent=t;if(s)document.getElementById('hdr-s').textContent=s;
+}
+
+let tt;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2500);}
+</script>
